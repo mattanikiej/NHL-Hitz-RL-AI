@@ -12,14 +12,10 @@ class RewardLoggingCallback(BaseCallback):
     def __init__(self, n_steps: int, verbose: int = 0):
         super(RewardLoggingCallback, self).__init__(verbose)
         self.n_steps = n_steps
-        self.step_counter = 0
         self.episode_rewards = 0
         self.resets = 0
 
     def _on_step(self) -> bool:
-        # Increment step counter
-        self.step_counter += 1
-
         # Collect the reward for the current step
         reward = self.locals['rewards'][0]
         self.episode_rewards += reward

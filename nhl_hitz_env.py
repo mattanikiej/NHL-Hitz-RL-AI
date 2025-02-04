@@ -64,7 +64,7 @@ class NHLHitzGymEnv(Env):
         self.reward_range = (-math.inf, math.inf)
         
         # observation is all frames since previous action
-        self.obs_shape = (self.dolphin_y, self.dolphin_x, 3)
+        self.obs_shape = (self.dolphin_y, self.dolphin_x, self.action_frequency)
         self.observation_space = spaces.Box(low=0, high=255, shape=self.obs_shape, dtype=np.uint8)
 
         # initialize reward structure
@@ -183,7 +183,9 @@ class NHLHitzGymEnv(Env):
 
         :return: (list[int])
         """
-        obs = self.capture_dolphin()
+        obs = np.zeros(self.obs_shape, dtype=np.uint8)
+        for i in range(self.action_frequency):
+            obs[:, :, i] = self.capture_dolphin()
         
         return obs, {}
 
@@ -446,7 +448,7 @@ class NHLHitzGymEnv(Env):
 
         # Save the screenshot
         img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
-        # img = img.convert("L")
+        img = img.convert("L")
         return np.array(img, dtype=np.uint8)
 
 
