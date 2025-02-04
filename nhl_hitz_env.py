@@ -7,7 +7,7 @@ import signal
 
 import numpy as np
 from Xlib import display, X
-from pynput.keyboard import Controller, Key
+import pyautogui as pgui
 import mss.linux as mss
 from PIL import Image
 
@@ -42,18 +42,18 @@ class NHLHitzGymEnv(Env):
 
         # initialize actions
         self.movement_actions = [
-            [Key.right, False],
-            [Key.up, False],
-            [Key.left, False],
-            [Key.down, False],
+            ["right", False],
+            ["up", False],
+            ["left", False],
+            ["down", False],
         ]
 
         self.button_actions = [
-            "a",
-            "b",
-            "x",
-            "y",
-            "z"
+            "A",
+            "B",
+            "X",
+            "Y",
+            "Z"
         ]
 
         # set gym attributes
@@ -64,7 +64,7 @@ class NHLHitzGymEnv(Env):
         self.reward_range = (-math.inf, math.inf)
         
         # observation is all frames since previous action
-        self.obs_shape = (self.dolphin_y, self.dolphin_x, self.action_frequency)
+        self.obs_shape = (self.dolphin_y, self.dolphin_x, 3)
         self.observation_space = spaces.Box(low=0, high=255, shape=self.obs_shape, dtype=np.uint8)
 
         # initialize reward structure
@@ -117,9 +117,6 @@ class NHLHitzGymEnv(Env):
         # initialize window and keyboard capture
         self.window = self.get_dolphin_window()
         self.sct = mss.MSS()
-
-        self.keyboard = Controller()
-        subprocess.run("mkfifo /home/macio/.config/dolphin-emu/pipe1", shell=True)  
             
         # start the game from initial state
         self.resets = 0
@@ -145,9 +142,9 @@ class NHLHitzGymEnv(Env):
 
         obs, _ = self.render()
         reward_gain = self.update_rewards()
-        terminated = self.check_period()
+        truncated = self.check_period()
 
-        return obs, reward_gain, terminated, False, self.rewards
+        return obs, reward_gain, False, truncated, {}
 
 
     def reset(self, seed=None):
@@ -170,10 +167,9 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             self.rewards[reward] = 0
 
-        # load initial state
-        self.press_key(Key.f1)
-        time.sleep(1.5)
-        subprocess.run("echo 'PRESS A' > /home/macio/.config/dolphin-emu/pipe1", shell=True)  
+        # reset game state
+        self.press_key("f1")  # load state
+        self.press_key("A")  # skip intro
         
 
         return self.render()
@@ -187,11 +183,7 @@ class NHLHitzGymEnv(Env):
 
         :return: (list[int])
         """
-        obs = np.zeros(self.obs_shape)
-
-        # get action frequency number of frames
-        for i in range(self.action_frequency):
-            obs[:, :, i] = self.capture_dolphin()
+        obs = self.capture_dolphin()
         
         return obs, {}
 
@@ -203,7 +195,7 @@ class NHLHitzGymEnv(Env):
 
         https://gymnasium.farama.org/api/env/
         """
-        subprocess.run("rm -rf /home/macio/.config/dolphin-emu/pipe1", shell=True) 
+        print(f"Closing Dolphin Emulator with PID {self.dolphin_pid}.")
         os.kill(self.dolphin_pid, signal.SIGTERM)
 
 
@@ -215,11 +207,8 @@ class NHLHitzGymEnv(Env):
         """
         movement_action, button_action = action
 
-        # self.movement_key_press(movement_action)
-        # self.button_key_press(button_action)
-
-
-        # release button
+        self.movement_key_press(movement_action)
+        self.button_key_press(button_action)
 
 
     def check_period(self):
@@ -285,9 +274,9 @@ class NHLHitzGymEnv(Env):
         """
         # print(f"Pressing {key}")
         self.focus_window()
-        self.keyboard.press(key)
-        time.sleep(0.01)
-        self.keyboard.release(key)
+        pgui.keyDown(key)
+        time.sleep(0.001)
+        pgui.keyUp(key)
 
 
     def button_key_press(self, action):
@@ -306,9 +295,7 @@ class NHLHitzGymEnv(Env):
                 break
             i += 1
 
-        self.keyboard.press(self.button_actions[i])
-        time.sleep(0.01)
-        self.keyboard.release(self.button_actions[i])
+        self.press_key(self.button_actions[i])
 
 
     def movement_key_press(self, action):
@@ -332,113 +319,113 @@ class NHLHitzGymEnv(Env):
         if i == 0:
             if not self.movement_actions[0][1]:
                 self.movement_actions[0][1] = True
-                self.keyboard.press(Key.right)
+                pgui.keyDown("right")
 
             for j in range(len(self.movement_actions)):
                 if j != 0:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move up-right
         elif i == 1:
             if not self.movement_actions[0][1]:
                 self.movement_actions[0][1] = True
-                self.keyboard.press(Key.right)
+                pgui.keyDown("right")
 
             if not self.movement_actions[1][1]:
                 self.movement_actions[1][1] = True
-                self.keyboard.press(Key.up)
+                pgui.keyDown("up")
 
             for j in range(len(self.movement_actions)):
                 if j != 0 and j != 1:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move up
         elif i == 2:
             if not self.movement_actions[1][1]:
                 self.movement_actions[1][1] = True
-                self.keyboard.press(Key.up)
+                pgui.keyDown("up")
 
             for j in range(len(self.movement_actions)):
                 if j != 1:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move up-left 
         elif i == 3:
             if not self.movement_actions[1][1]:
                 self.movement_actions[1][1] = True
-                self.keyboard.press(Key.up)
+                pgui.keyDown("up")
 
             if not self.movement_actions[2][1]:
                 self.movement_actions[2][1] = True
-                self.keyboard.press(Key.left)
+                pgui.keyDown("left")
 
             for j in range(len(self.movement_actions)):
                 if j != 1 and j != 2:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move left
         elif i == 4:
             if not self.movement_actions[2][1]:
                 self.movement_actions[2][1] = True
-                self.keyboard.press(Key.left)
+                pgui.keyDown("left")
 
             for j in range(len(self.movement_actions)):
                 if j != 2:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move down-left
         elif i == 5:
             if not self.movement_actions[2][1]:
                 self.movement_actions[2][1] = True
-                self.keyboard.press(Key.left)
+                pgui.keyDown("left")
 
             if not self.movement_actions[3][1]:
                 self.movement_actions[3][1] = True
-                self.keyboard.press(Key.down)
+                pgui.keyDown("down")
 
             for j in range(len(self.movement_actions)):
                 if j != 2 and j != 3:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move down
         elif i == 6:
             if not self.movement_actions[3][1]:
                 self.movement_actions[3][1] = True
-                self.keyboard.press(Key.down)
+                pgui.keyDown("down")
 
             for j in range(len(self.movement_actions)):
                 if j != 3:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
 
         # move down-right
         elif i == 7:
             if not self.movement_actions[3][1]:
                 self.movement_actions[3][1] = True
-                self.keyboard.press(Key.down)
+                pgui.keyDown("down")
 
             if not self.movement_actions[0][1]:
                 self.movement_actions[0][1] = True
-                self.keyboard.press(Key.right)
+                pgui.keyDown("right")
 
             for j in range(len(self.movement_actions)):
                 if j != 3 and j != 0:
                     if self.movement_actions[j][1]:
                         self.movement_actions[j][1] = False
-                        self.keyboard.release(self.movement_actions[j][0])
+                        pgui.keyUp(self.movement_actions[j][0])
     
 
     def capture_dolphin(self):
@@ -459,8 +446,8 @@ class NHLHitzGymEnv(Env):
 
         # Save the screenshot
         img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
-        img = img.convert("L")
-        return np.array(img)
+        # img = img.convert("L")
+        return np.array(img, dtype=np.uint8)
 
 
     def update_rewards(self):

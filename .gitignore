@@ -1,4 +1,7 @@
 dolphin/*
 __pycache__/*
 
+tb_logs/*
+
 key.txt
+scratch.py
