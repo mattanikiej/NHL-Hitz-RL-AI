@@ -88,7 +88,7 @@ class NHLHitzGymEnv(Env):
             'missed_pass': -1
         }
 
-        self.current_rewards = 0
+        self.total_rewards = 0
 
         # initialize dolphin emulator
         command = [
@@ -167,7 +167,7 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             self.rewards[reward] = 0
 
-        self.current_rewards = 0
+        self.total_rewards = 0
 
         # reset game state
         self.press_key("f1")  # load state
@@ -212,7 +212,10 @@ class NHLHitzGymEnv(Env):
         movement_action, button_action = action
 
         self.movement_key_press(movement_action)
-        self.button_key_press(button_action)
+
+        # ensure button action is not None
+        if button_action != len(self.button_actions) - 1:
+            self.button_key_press(button_action)
 
 
     def check_period(self):
@@ -457,6 +460,6 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             new_rewards += self.rewards[reward] * self.reward_weights[reward]
 
-        self.current_rewards = new_rewards
+        self.total_rewards += new_rewards
 
-        return self.current_rewards
+        return new_rewards

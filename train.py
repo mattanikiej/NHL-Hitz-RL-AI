@@ -1,5 +1,5 @@
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback
+from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv
 import configs as c
 from nhl_hitz_env import NHLHitzGymEnv
@@ -53,7 +53,16 @@ if __name__ == "__main__":
     # create environment
     env = DummyVecEnv([lambda: NHLHitzGymEnv(cfg)])
 
+    # initialize callbacks
     reward_callback = RewardLoggingCallback(n_steps=n_steps, verbose=verbose)
+
+    checkpoint_callback = CheckpointCallback(
+        save_freq=(train_steps*n_steps) // 5,
+        save_path="./logs/",
+        name_prefix=uuid,
+    )
+
+    callback = CallbackList([reward_callback, checkpoint_callback])
 
     model = PPO('CnnPolicy', 
                 env, 
@@ -61,10 +70,12 @@ if __name__ == "__main__":
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 n_steps=n_steps,
-                tensorboard_log="./tb_logs/",
-                tb_log_name=uuid)
+                tensorboard_log="./tb_logs/")
 
-    model.learn(total_timesteps=train_steps*n_steps, progress_bar=progress_bar, callback=reward_callback)
+    model.learn(total_timesteps=train_steps*n_steps, 
+                progress_bar=progress_bar,
+                tb_log_name=uuid,
+                callback=reward_callback)
 
     if save_model:
         model.save("saved_models/" + uuid + "-model")
