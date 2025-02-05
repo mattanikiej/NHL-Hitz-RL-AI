@@ -53,13 +53,13 @@ class NHLHitzGymEnv(Env):
             "B",
             "X",
             "Y",
-            "Z"
+            "Z",
+            None
         ]
 
         # set gym attributes
-        self.action_space = spaces.Box(low=np.array([-1, -1]),
-                                       high=np.array([1, 1]),
-                                       dtype=np.float32)
+        # space [8 directions, len(button_actions) buttons to press]
+        self.action_space = spaces.MultiDiscrete([8, len(self.button_actions)])
         
         self.reward_range = (-math.inf, math.inf)
         
@@ -289,17 +289,8 @@ class NHLHitzGymEnv(Env):
 
         :param actino (float): action to take
         """
-        self.focus_window()
 
-        buttons = [-1.0, -0.5, 0.0, 0.5, 1.0]
-
-        i = 0
-        while i < len(buttons)-1:
-            if buttons[i] <= action < buttons[i+1]:
-                break
-            i += 1
-
-        self.press_key(self.button_actions[i])
+        self.press_key(self.button_actions[action])
 
 
     def movement_key_press(self, action):
@@ -308,17 +299,11 @@ class NHLHitzGymEnv(Env):
 
         :param action (float): action to take
         """
-        # print(f"Pressing {key}")
         self.focus_window()
 
-        directions = [-1.0, -0.75, -0.5, -0.25, 0.0, 0.25, 0.5, 0.75, 1.0]
+        # i is left over from abysmal code and don't want to fix this since it works
+        i = action
 
-        i = 0
-        while i < len(directions)-1:
-            if directions[i] <= action < directions[i+1]:
-                break
-            i += 1
-        
         # move right
         if i == 0:
             if not self.movement_actions[0][1]:
