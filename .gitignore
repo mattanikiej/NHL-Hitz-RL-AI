@@ -2,6 +2,7 @@ dolphin/*
 __pycache__/*
 
 tb_logs/*
+saved_models/*
 
 key.txt
 scratch.py

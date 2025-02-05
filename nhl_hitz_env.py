@@ -167,6 +167,8 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             self.rewards[reward] = 0
 
+        self.current_rewards = 0
+
         # reset game state
         self.press_key("f1")  # load state
         self.press_key("A")  # skip intro
@@ -470,7 +472,6 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             new_rewards += self.rewards[reward] * self.reward_weights[reward]
 
-        reward_diff = new_rewards - self.current_rewards
         self.current_rewards = new_rewards
 
-        return reward_diff
+        return self.current_rewards

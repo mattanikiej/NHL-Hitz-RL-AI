@@ -3,7 +3,6 @@ from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.vec_env import DummyVecEnv
 import configs as c
 from nhl_hitz_env import NHLHitzGymEnv
-import pickle
 from uuid import uuid4
 
 
@@ -22,19 +21,24 @@ class RewardLoggingCallback(BaseCallback):
 
         # Log rewards to TensorBoard after every n_steps
         if self.locals['dones'][0]:
-            self.logger.record('reward', self.episode_rewards)
-            self.logger.dump(self.resets)
+            self.logger.record('total_reward', self.episode_rewards)
+            self.logger.record('resets', self.resets)
 
             if self.verbose > 0:
                 print(f"Reset: {self.resets}, Reward: {self.episode_rewards:.2f}")
 
             # Reset the episode rewards
             self.episode_rewards = 0
+            self.resets += 1
 
         return True 
     
 
 if __name__ == "__main__":
+
+    # create session id
+    uuid = str(uuid4())[:5]
+
     # get configs 
     cfg = c.basic
 
@@ -57,22 +61,13 @@ if __name__ == "__main__":
                 batch_size=batch_size,
                 n_epochs=n_epochs,
                 n_steps=n_steps,
-                tensorboard_log="./tb_logs/")
+                tensorboard_log="./tb_logs/",
+                tb_log_name=uuid)
 
     model.learn(total_timesteps=train_steps*n_steps, progress_bar=progress_bar, callback=reward_callback)
 
     if save_model:
-        # create model id
-        uuid = str(uuid4())[:4]
-        print(f"Saving model: {uuid}")
-
-        # Save the model
-        model.save(uuid + "-model")
-
-        # Save the environment
-        with open(uuid + "-env.pkl", "wb") as f:
-            pickle.dump(env, f)
-
+        model.save("saved_models/" + uuid + "-model")
 
     # close environments
     env.close()
