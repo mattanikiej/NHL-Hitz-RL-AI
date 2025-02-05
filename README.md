@@ -3,7 +3,7 @@
     <img alt="NHL Hitz 2003 Logo" src="assets/nhl-hitz-logo.jpg" height="200">
 </p>
 
-__This is a reinforcement learning artificial intelligence model built to play the GameCube verion of NHL Hitz 2003 using the Dolphin Emulator.__
+__This is a reinforcement learning artificial intelligence model built to play the GameCube version of NHL Hitz 2003 using the Dolphin Emulator.__
 
 Note: This was built on a Linux system, and may not work with other operating systems without some changes (mainly the window focusing).
 
