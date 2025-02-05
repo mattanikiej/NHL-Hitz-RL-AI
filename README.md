@@ -34,12 +34,12 @@ pip install -r requirements.txt
 ```
 
 
-## Install Dolphin Emulator for GameCube and Wii
+## 🐬 Install Dolphin Emulator for GameCube and Wii 🐬
 The game runs on the Dolphin emulator for GameCube and Wii games, and needs to be installed for it to work.
 
 [Dolphin](https://github.com/dolphin-emu/dolphin) can be installed in many different ways. Initially I was going to try to script this within dolphin so I used this fork [here](https://github.com/Felk/dolphin). Both versions should work, as long as you can run dolphin from the terminal.
 
-## Obtain NHL Hitz 2003 ROM
+## 🏒 Obtain NHL Hitz 2003 ROM 🏒
 The model is trained to play NHL Hitz 2003 for the GameCube. The ROM that I have is a ```.rvz``` file. However, it should work with all formats. 
 
 After obtaining your legally obtained ROM, make sure that dolphin can run it. Additionally, you can try this command that the environment uses to open the game: (Replace ```path/to/your/rom``` with the path to your rom location)
@@ -67,7 +67,7 @@ python run_pretrained_model.py
 python train.py
 ```
 
-### Tips For Training
+### 🤓 Tips For Training 🤓
 Unless you have a very powerful computer, and a lot (and I mean A LOT) of time, I would recommend the following changes:
 * decrease ```train_steps``` to reduce time
 * decrease ```batch_size``` and/ or ```n_steps``` to decrease memory load
@@ -84,7 +84,7 @@ This AI couldn't have been done without these amazing projects. Please check the
 ### [Dolphin Memory Engine](https://github.com/randovania/py-dolphin-memory-engine)
 
 
-# Thanks for visiting! Continue the discussion in these awesome communities:
+# 🥅 Thanks for visiting! Continue the discussion in these awesome communities: 🥅
 [![Discord Banner 2 Dolphin](https://invidget.switchblade.xyz/SUWqhYUVb4)](https://discord.gg/SUWqhYUVb4) 
 
 [![Discord Banner 2 Reinforcement Learning](http://invidget.switchblade.xyz/pV8k2v6Fes)](https://discord.gg/pV8k2v6Fes)
