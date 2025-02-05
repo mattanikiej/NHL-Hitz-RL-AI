@@ -84,7 +84,7 @@ This AI couldn't have been done without these amazing projects. Please check the
 ### [Dolphin Memory Engine](https://github.com/randovania/py-dolphin-memory-engine)
 
 
-# 🥅 Thanks for visiting! Continue the discussion in these awesome communities: 🥅
+# 🥅 Thanks for visiting! Check out these awesome communities: 🥅
 [![Discord Banner 2 Dolphin](https://invidget.switchblade.xyz/SUWqhYUVb4)](https://discord.gg/SUWqhYUVb4) 
 
 [![Discord Banner 2 Reinforcement Learning](http://invidget.switchblade.xyz/pV8k2v6Fes)](https://discord.gg/pV8k2v6Fes)
