@@ -1,5 +1,5 @@
 basic = {
-    "train_steps": 1000,
+    "train_steps": 1500,
     "n_steps": 128,
     "action_frequency": 5,
     "verbose": 1,
