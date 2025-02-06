@@ -425,13 +425,14 @@ class NHLHitzGymEnv(Env):
         Captures the dolphin window
         """
         geometry = self.window.get_geometry()
-        x, y = geometry.x, geometry.y
+        padding = 20
+        x, y, width, height = geometry.x, geometry.y, geometry.width, geometry.height
 
         monitor = {
-            "top": y,
-            "left": x,
-            "width": geometry.width,
-            "height": geometry.height
+            "top": y + padding,
+            "left": x + padding,
+            "width": width - 2*padding,
+            "height": height - 2*padding
         }
     
         screenshot = self.sct.grab(monitor)
@@ -439,7 +440,8 @@ class NHLHitzGymEnv(Env):
         # Save the screenshot
         img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
         img = img.convert("L")
-        return np.array(img, dtype=np.uint8)
+        img_resized = img.resize((self.obs_shape[1], self.obs_shape[0]), Image.LANCZOS)
+        return np.array(img_resized, dtype=np.uint8)
 
 
     def update_rewards(self):
