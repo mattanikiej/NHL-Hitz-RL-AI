@@ -81,7 +81,7 @@ class NHLHitzGymEnv(Env):
         self.reward_weights = {
             'hit': 1,
             'pass': 1,
-            'shot': 5,
+            'shot': 2,
             'goal': 50,
 
             'opponent_goal': -1,
@@ -460,6 +460,7 @@ class NHLHitzGymEnv(Env):
         for reward in self.rewards:
             new_rewards += self.rewards[reward] * self.reward_weights[reward]
 
+        reward_gain = new_rewards - self.total_rewards
         self.total_rewards += new_rewards
 
-        return new_rewards
+        return reward_gain
