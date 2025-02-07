@@ -49,15 +49,16 @@ dolphin-emu  --exec path/to/your/rom
 ```
 
 ## 🤖 Run Pretrained Model 🤖
-Note: The pretrained models I have are too large to host on GitHub, so you will need to train your own first.
-1. Change ```file_name``` to the path to your saved model in the ```run_pretrained_model.py``` file
+1. Downlaod the latest model from the releases tab
 
-2. Run ```run_pretrained_model.py``` file
+2. Change ```file_name``` to the path to your saved model in the ```run_pretrained_model.py``` file
+
+3. Run ```run_pretrained_model.py``` file
 ```
 python run_pretrained_model.py
 ```
 
-3. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop. To stop the run, press ```CTRL + C``` in the terminal
+4. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop. To stop the run, press ```CTRL + C``` in the terminal
 
 
 ## 🦾 Train Your Own AI 🦾
@@ -91,5 +92,5 @@ This AI couldn't have been done without these amazing projects. Please check the
 
 
 <p align="center">
-    <img alt="NHL Hitz 2003 GameCube Box Art" src="/assets/boxart.jpg" height="200" >
+    <img alt="NHL Hitz 2003 GameCube Box Art" src="/assets/boxart.jpg" height="300" >
 </p>
