@@ -259,18 +259,6 @@ class NHLHitzGymEnv(Env):
                 window = d.create_resource_object('window', window_id)
 
                 return window
-    
-
-    def focus_window(self):
-        """
-        Brings the dolphin window into focus
-        """
-        d = display.Display()
-        self.window.set_input_focus(X.RevertToNone, X.CurrentTime)
-        d.sync()
-
-        self.window.configure(stack_mode=X.Above)
-        d.sync()
 
 
     def press_key(self, key):
@@ -279,8 +267,6 @@ class NHLHitzGymEnv(Env):
 
         :param key (Key): key to press
         """
-        # print(f"Pressing {key}")
-        self.focus_window()
         pgui.keyDown(key)
         time.sleep(0.001)
         pgui.keyUp(key)
@@ -302,7 +288,6 @@ class NHLHitzGymEnv(Env):
 
         :param action (float): action to take
         """
-        self.focus_window()
 
         # i is left over from abysmal code and don't want to fix this since it works
         i = action
