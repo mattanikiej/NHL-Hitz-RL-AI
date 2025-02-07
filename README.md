@@ -50,15 +50,12 @@ dolphin-emu  --exec path/to/your/rom
 
 ## 🤖 Run Pretrained Model 🤖
 Note: The pretrained models I have are too large to host on GitHub, so you will need to train your own first.
-1. Enter ```src/``` directory
-```
-cd src
-```
-2. Run ```run_pretrained_model.py``` file
+
+1. Run ```run_pretrained_model.py``` file
 ```
 python run_pretrained_model.py
 ```
-3. To stop the run, press ```CTRL + C``` in the terminal
+2. To stop the run, press ```CTRL + C``` in the terminal
 
 ## 🦾 Train Your Own AI 🦾
 
