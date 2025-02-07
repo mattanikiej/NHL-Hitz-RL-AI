@@ -57,7 +57,7 @@ Note: The pretrained models I have are too large to host on GitHub, so you will 
 python run_pretrained_model.py
 ```
 
-3. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop.To stop the run, press ```CTRL + C``` in the terminal
+3. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop. To stop the run, press ```CTRL + C``` in the terminal
 
 
 ## 🦾 Train Your Own AI 🦾
