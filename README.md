@@ -53,13 +53,12 @@ Note: The pretrained models I have are too large to host on GitHub, so you will 
 1. Change ```file_name``` to the path to your saved model in the ```run_pretrained_model.py``` file
 
 2. Run ```run_pretrained_model.py``` file
-
-1. Run ```run_pretrained_model.py``` file
 ```
 python run_pretrained_model.py
 ```
+
 3. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop.To stop the run, press ```CTRL + C``` in the terminal
-2. To stop the run, press ```CTRL + C``` in the terminal
+
 
 ## 🦾 Train Your Own AI 🦾
 
