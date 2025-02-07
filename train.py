@@ -58,7 +58,7 @@ if __name__ == "__main__":
 
     checkpoint_callback = CheckpointCallback(
         save_freq=(train_steps*n_steps) // 5,
-        save_path="./logs/",
+        save_path="./checkpoints/",
         name_prefix=uuid,
     )
 
