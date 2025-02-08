@@ -56,8 +56,9 @@ if __name__ == "__main__":
     # initialize callbacks
     reward_callback = RewardLoggingCallback(n_steps=n_steps, verbose=verbose)
 
+    checkpoint_freq = int((train_steps*n_steps) // 5)
     checkpoint_callback = CheckpointCallback(
-        save_freq=(train_steps*n_steps) // 5,
+        save_freq=checkpoint_freq,
         save_path="./checkpoints/",
         name_prefix=uuid,
     )
