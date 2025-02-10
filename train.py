@@ -65,6 +65,7 @@ if __name__ == "__main__":
 
     callback = CallbackList([reward_callback, checkpoint_callback])
 
+    # create model
     model = PPO('CnnPolicy', 
                 env, 
                 verbose=verbose,
@@ -72,11 +73,21 @@ if __name__ == "__main__":
                 n_epochs=n_epochs,
                 n_steps=n_steps,
                 tensorboard_log="./tb_logs/")
+    
+    # check to train on pretrained model
+    if cfg["train_pretrained"]:
+        uuid = cfg["uuid"]
+
+        model_path = f"saved_models/{uuid}-model.zip"
+
+        model = PPO.load(model_path, tensorboard_log="./tb_logs/")
+        model.set_env(env)
 
     model.learn(total_timesteps=train_steps*n_steps, 
                 progress_bar=progress_bar,
                 tb_log_name=uuid,
-                callback=reward_callback)
+                callback=reward_callback,
+                reset_num_timesteps=False if cfg["train_pretrained"] else True)
 
     if save_model:
         model.save("saved_models/" + uuid + "-model")

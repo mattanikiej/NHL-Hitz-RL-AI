@@ -1,5 +1,5 @@
 basic = {
-    "train_steps": 1000,
+    "train_steps": 800,
     "n_steps": 128,
     "action_frequency": 5,
     "verbose": 1,
@@ -10,5 +10,8 @@ basic = {
     "window_name": "Dolphin scripting-preview3-2350 | JIT64 DC | OpenGL | HLE | NHL Hitz 2003 (GN3E5D)",
     "dolphin_x": 640,
     "dolphin_y": 528,
-    "save_model": True
+    "save_model": True,
+
+    "train_pretrained": True,
+    "uuid": "7f0a6"
 }

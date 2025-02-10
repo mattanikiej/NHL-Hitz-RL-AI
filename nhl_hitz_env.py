@@ -81,11 +81,11 @@ class NHLHitzGymEnv(Env):
         self.reward_weights = {
             'hit': 1,
             'pass': 1,
-            'shot': 3,
-            'goal': 20,
+            'shot': 10,
+            'goal': 100,
 
-            'opponent_goal': 0,
-            'missed_pass': 0
+            'opponent_goal': -10,
+            'missed_pass': -5
         }
 
         self.total_rewards = 0
