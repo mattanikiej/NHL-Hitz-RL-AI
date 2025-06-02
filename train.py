@@ -1,43 +1,17 @@
 from stable_baselines3 import PPO
-from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback, CallbackList
-from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
+from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
+
+from reward_logging_callback import RewardLoggingCallback
+from reward_breakdown_callback import RewardBreakdownCallback
 import configs as c
 from nhl_hitz_env import NHLHitzGymEnv
+
 from uuid import uuid4
+import argparse
 
 
-# Custom callback to log rewards to TensorBoard
-class RewardLoggingCallback(BaseCallback):
-    def __init__(self, n_steps: int, verbose: int = 0):
-        super(RewardLoggingCallback, self).__init__(verbose)
-        self.n_steps = n_steps
-        self.episode_rewards = 0
-        self.resets = 0
-
-    def _on_step(self) -> bool:
-        # Collect the reward for the current step
-        reward = self.locals['rewards'][0]
-        self.episode_rewards += reward
-
-        # Log rewards to TensorBoard after every n_steps
-        if self.locals['dones'][0]:
-            self.logger.record('total_reward', self.episode_rewards)
-            self.logger.record('resets', self.resets)
-
-            if self.verbose > 0:
-                print(f"Reset: {self.resets}, Reward: {self.episode_rewards:.2f}")
-
-            # Reset the episode rewards
-            self.episode_rewards = 0
-            self.resets += 1
-
-        return True 
-    
-
-if __name__ == "__main__":
-
-    # create session id
-    uuid = str(uuid4())[:5]
+def train(session_id):
 
     # get configs 
     cfg = c.basic
@@ -52,18 +26,25 @@ if __name__ == "__main__":
 
     # create environment
     env = DummyVecEnv([lambda: NHLHitzGymEnv(cfg)])
+    env = VecNormalize(env, norm_reward=True, norm_obs=False)
 
     # initialize callbacks
     reward_callback = RewardLoggingCallback(n_steps=n_steps, verbose=verbose)
+
+    reward_breakdown_callback = RewardBreakdownCallback()
 
     checkpoint_freq = int((train_steps*n_steps) // 5)
     checkpoint_callback = CheckpointCallback(
         save_freq=checkpoint_freq,
         save_path="./checkpoints/",
-        name_prefix=uuid,
+        name_prefix=session_id,
     )
 
-    callback = CallbackList([reward_callback, checkpoint_callback])
+    callbacks = CallbackList([
+        reward_callback, 
+        checkpoint_callback, 
+        reward_breakdown_callback
+        ])
 
     # create model
     model = PPO('CnnPolicy', 
@@ -75,22 +56,40 @@ if __name__ == "__main__":
                 tensorboard_log="./tb_logs/")
     
     # check to train on pretrained model
+    reset_num_timesteps = True
     if cfg["train_pretrained"]:
-        uuid = cfg["uuid"]
+        session_id = cfg["session_id"]
 
-        model_path = f"saved_models/{uuid}-model.zip"
+        model_path = f"saved_models/{session_id}-model.zip"
 
         model = PPO.load(model_path, tensorboard_log="./tb_logs/")
         model.set_env(env)
+        
+        reset_num_timesteps = False
 
     model.learn(total_timesteps=train_steps*n_steps, 
                 progress_bar=progress_bar,
-                tb_log_name=uuid,
-                callback=reward_callback,
-                reset_num_timesteps=False if cfg["train_pretrained"] else True)
+                tb_log_name=session_id,
+                callback=callbacks,
+                reset_num_timesteps=reset_num_timesteps)
 
     if save_model:
-        model.save("saved_models/" + uuid + "-model")
+        model.save("saved_models/" + session_id + "-model")
 
     # close environments
     env.close()
+    
+
+if __name__ == "__main__":
+    # create args parser
+    parser = argparse.ArgumentParser(description='Train a reinforcement learning model')
+
+    # set arguments
+    parser.add_argument('--session_id', type=str, default=str(uuid4())[:5], help='session_id for the model')
+
+    # parse args
+    args = parser.parse_args()
+
+    # train model
+    train(args.session_id)
+

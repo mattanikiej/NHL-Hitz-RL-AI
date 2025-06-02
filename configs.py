@@ -12,6 +12,5 @@ basic = {
     "dolphin_y": 528,
     "save_model": True,
 
-    "train_pretrained": True,
-    "uuid": "7f0a6"
+    "train_pretrained": False
 }

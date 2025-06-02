@@ -79,13 +79,12 @@ class NHLHitzGymEnv(Env):
         }
 
         self.reward_weights = {
-            'hit': 1,
-            'pass': 1,
-            'shot': 10,
-            'goal': 100,
-
-            'opponent_goal': -10,
-            'missed_pass': -5
+            'hit': 5,              # Encourage physical play
+            'pass': 1,             # Very small reward for passing
+            'shot': 20,            # Encourage shooting
+            'goal': 100,           # Big reward for scoring
+            'opponent_goal': -150, # Big penalty for conceding
+            'missed_pass': -10     # Strong penalty for missed passes
         }
 
         self.total_rewards = 0
@@ -144,7 +143,13 @@ class NHLHitzGymEnv(Env):
         reward_gain = self.update_rewards()
         truncated = self.check_period()
 
-        return obs, reward_gain, False, truncated, {}
+        reward_breakdown = self.rewards.copy()
+        for reward in reward_breakdown:
+            reward_breakdown[reward] = reward_breakdown[reward] * self.reward_weights[reward]
+
+        info = {'reward_breakdown': reward_breakdown}
+
+        return obs, reward_gain, False, truncated, info
 
 
     def reset(self, seed=None):
@@ -276,7 +281,7 @@ class NHLHitzGymEnv(Env):
         """
         Presses the given button key
 
-        :param actino (float): action to take
+        :param action (float): action to take
         """
 
         self.press_key(self.button_actions[action])
