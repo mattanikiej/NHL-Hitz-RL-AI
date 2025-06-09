@@ -9,7 +9,7 @@ import numpy as np
 from Xlib import display, X
 import pyautogui as pgui
 import mss.linux as mss
-from PIL import Image
+import cv2
 
 from gymnasium import Env, spaces
 
@@ -32,11 +32,11 @@ class NHLHitzGymEnv(Env):
             raise Exception("Config needs to be set for NHLHitzGymEnv. Check configs.py for structure")
         
         # load in config values
-        self.action_frequency = config['action_frequency']
         self.initial_state = config['state']
         self.window_name = config['window_name']
         self.dolphin_x = config['dolphin_x']
         self.dolphin_y = config['dolphin_y']
+        self.frame_stack = config['frame_stack']
 
         self.id = str(uuid4())[:5]
 
@@ -64,7 +64,7 @@ class NHLHitzGymEnv(Env):
         self.reward_range = (-math.inf, math.inf)
         
         # observation is all frames since previous action
-        self.obs_shape = (self.dolphin_y, self.dolphin_x, self.action_frequency)
+        self.obs_shape = (self.dolphin_y, self.dolphin_x, 3 * self.frame_stack)
         self.observation_space = spaces.Box(low=0, high=255, shape=self.obs_shape, dtype=np.uint8)
 
         # initialize reward structure
@@ -121,6 +121,9 @@ class NHLHitzGymEnv(Env):
         self.resets = 0
         self.reset()
 
+        # Initialize frame buffer
+        self.frame_buffer = [np.zeros((self.dolphin_y, self.dolphin_x, 3), dtype=np.uint8) for _ in range(self.frame_stack)]
+
 
     def step(self, action):
         """
@@ -135,19 +138,27 @@ class NHLHitzGymEnv(Env):
 
         :return: (ObsType), (SupportsFloat), (bool), (bool), (dict)
         """
+
         self.act(action)
 
         self.steps += 1
 
-        obs, _ = self.render()
         reward_gain = self.update_rewards()
         truncated = self.check_period()
+
+        # Capture new frame and update buffer
+        new_frame = self.capture_dolphin()
+
+        self.frame_buffer.pop(0)
+        self.frame_buffer.append(new_frame)
+
+        obs = self._get_obs()
 
         reward_breakdown = self.rewards.copy()
         for reward in reward_breakdown:
             reward_breakdown[reward] = reward_breakdown[reward] * self.reward_weights[reward]
-
         info = {'reward_breakdown': reward_breakdown}
+
 
         return obs, reward_gain, False, truncated, info
 
@@ -178,8 +189,9 @@ class NHLHitzGymEnv(Env):
         self.press_key("f1")  # load state
         self.press_key("A")  # skip intro
         
-
-        return self.render()
+        initial_frame = self.capture_dolphin()
+        self.frame_buffer = [initial_frame.copy() for _ in range(self.frame_stack)]
+        return self._get_obs(), {}
 
 
     def render(self):
@@ -190,11 +202,7 @@ class NHLHitzGymEnv(Env):
 
         :return: (list[int])
         """
-        obs = np.zeros(self.obs_shape, dtype=np.uint8)
-        for i in range(self.action_frequency):
-            obs[:, :, i] = self.capture_dolphin()
-        
-        return obs, {}
+        return self._get_obs(), {}
 
 
     def close(self):
@@ -297,7 +305,6 @@ class NHLHitzGymEnv(Env):
             action (int): Integer between 0-7 representing the movement direction
         """
         # Define movement mappings for each direction
-        # Each tuple contains the keys that should be pressed for that direction
         movement_map = {
             0: ["right"],           # right
             1: ["right", "up"],     # up-right
@@ -309,27 +316,26 @@ class NHLHitzGymEnv(Env):
             7: ["right", "down"]    # down-right
         }
 
-        # Get the keys that should be pressed for this action
-        keys_to_press = movement_map[action]
-        
-        # Release only the keys that aren't needed for the new movement
-        for key, is_pressed in self.movement_actions:
+        keys_to_press = set(movement_map[action])
+
+        # Release keys that are pressed but not needed
+        for i, (key, is_pressed) in enumerate(self.movement_actions):
             if is_pressed and key not in keys_to_press:
                 pgui.keyUp(key)
-                self.movement_actions[self.movement_actions.index([key, True])][1] = False
+                self.movement_actions[i][1] = False
 
-        # Press only the keys that aren't already pressed
-        for key in keys_to_press:
-            if not self.movement_actions[self.movement_actions.index([key, False])][1]:
+        # Press keys that are needed and not already pressed
+        for i, (key, is_pressed) in enumerate(self.movement_actions):
+            if key in keys_to_press and not is_pressed:
                 pgui.keyDown(key)
-                self.movement_actions[self.movement_actions.index([key, False])][1] = True
+                self.movement_actions[i][1] = True
 
 
     def capture_dolphin(self):
         """
-        Captures the dolphin window efficiently using mss and numpy.
-        Returns a grayscale numpy array of the captured screen.
+        Captures the dolphin window and returns an RGB numpy array.
         """
+        t0 = time.time()
         geometry = self.window.get_geometry()
         padding = 20
         x, y, width, height = geometry.x, geometry.y, geometry.width, geometry.height
@@ -340,18 +346,12 @@ class NHLHitzGymEnv(Env):
             "width": width - 2*padding,
             "height": height - 2*padding
         }
-    
-        # Capture screen directly to numpy array
+
         screenshot = self.sct.grab(monitor)
-        
-        # Convert to grayscale using numpy operations
-        # This is faster than using PIL's convert
-        img_array = np.array(screenshot, dtype=np.uint8)
-        # Convert RGB to grayscale using standard weights
-        grayscale = np.dot(img_array[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
-        
-        # Resize using PIL's LANCZOS resampling
-        return np.array(Image.fromarray(grayscale).resize((self.obs_shape[1], self.obs_shape[0]), Image.LANCZOS), dtype=np.uint8)
+        img_array = np.frombuffer(screenshot.rgb, dtype=np.uint8).reshape((screenshot.height, screenshot.width, 3))
+        img_resized = cv2.resize(img_array, (self.obs_shape[1], self.obs_shape[0]), interpolation=cv2.INTER_LINEAR)
+
+        return img_resized
 
 
     def update_rewards(self):
@@ -376,3 +376,7 @@ class NHLHitzGymEnv(Env):
         self.total_rewards = new_rewards
 
         return reward_gain
+
+
+    def _get_obs(self):
+        return np.concatenate(self.frame_buffer, axis=2, dtype=np.uint8)

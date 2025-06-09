@@ -1,7 +1,7 @@
 basic = {
     "train_steps": 800,
     "n_steps": 128,
-    "action_frequency": 5,
+    "frame_stack": 5,
     "verbose": 1,
     "batch_size": 64,
     "n_epochs": 1,
