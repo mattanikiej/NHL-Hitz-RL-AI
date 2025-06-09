@@ -81,10 +81,10 @@ class NHLHitzGymEnv(Env):
         self.reward_weights = {
             'hit': 5,              # Encourage physical play
             'pass': 1,             # Very small reward for passing
-            'shot': 20,            # Encourage shooting
+            'shot': 10,            # Encourage shooting
             'goal': 100,           # Big reward for scoring
             'opponent_goal': -150, # Big penalty for conceding
-            'missed_pass': -10     # Strong penalty for missed passes
+            'missed_pass': -3      # Penalty for missed passes
         }
 
         self.total_rewards = 0
@@ -289,130 +289,46 @@ class NHLHitzGymEnv(Env):
 
     def movement_key_press(self, action):
         """
-        releases unused movement keys and presses necessary keys
+        Handles movement key presses based on the action value.
+        Action values 0-7 correspond to 8 directional movements:
+        0: right, 1: up-right, 2: up, 3: up-left, 4: left, 5: down-left, 6: down, 7: down-right
 
-        :param action (float): action to take
+        Args:
+            action (int): Integer between 0-7 representing the movement direction
         """
+        # Define movement mappings for each direction
+        # Each tuple contains the keys that should be pressed for that direction
+        movement_map = {
+            0: ["right"],           # right
+            1: ["right", "up"],     # up-right
+            2: ["up"],              # up
+            3: ["up", "left"],      # up-left
+            4: ["left"],            # left
+            5: ["left", "down"],    # down-left
+            6: ["down"],            # down
+            7: ["right", "down"]    # down-right
+        }
 
-        # i is left over from abysmal code and don't want to fix this since it works
-        i = action
+        # Get the keys that should be pressed for this action
+        keys_to_press = movement_map[action]
+        
+        # Release only the keys that aren't needed for the new movement
+        for key, is_pressed in self.movement_actions:
+            if is_pressed and key not in keys_to_press:
+                pgui.keyUp(key)
+                self.movement_actions[self.movement_actions.index([key, True])][1] = False
 
-        # move right
-        if i == 0:
-            if not self.movement_actions[0][1]:
-                self.movement_actions[0][1] = True
-                pgui.keyDown("right")
+        # Press only the keys that aren't already pressed
+        for key in keys_to_press:
+            if not self.movement_actions[self.movement_actions.index([key, False])][1]:
+                pgui.keyDown(key)
+                self.movement_actions[self.movement_actions.index([key, False])][1] = True
 
-            for j in range(len(self.movement_actions)):
-                if j != 0:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move up-right
-        elif i == 1:
-            if not self.movement_actions[0][1]:
-                self.movement_actions[0][1] = True
-                pgui.keyDown("right")
-
-            if not self.movement_actions[1][1]:
-                self.movement_actions[1][1] = True
-                pgui.keyDown("up")
-
-            for j in range(len(self.movement_actions)):
-                if j != 0 and j != 1:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move up
-        elif i == 2:
-            if not self.movement_actions[1][1]:
-                self.movement_actions[1][1] = True
-                pgui.keyDown("up")
-
-            for j in range(len(self.movement_actions)):
-                if j != 1:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move up-left 
-        elif i == 3:
-            if not self.movement_actions[1][1]:
-                self.movement_actions[1][1] = True
-                pgui.keyDown("up")
-
-            if not self.movement_actions[2][1]:
-                self.movement_actions[2][1] = True
-                pgui.keyDown("left")
-
-            for j in range(len(self.movement_actions)):
-                if j != 1 and j != 2:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move left
-        elif i == 4:
-            if not self.movement_actions[2][1]:
-                self.movement_actions[2][1] = True
-                pgui.keyDown("left")
-
-            for j in range(len(self.movement_actions)):
-                if j != 2:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move down-left
-        elif i == 5:
-            if not self.movement_actions[2][1]:
-                self.movement_actions[2][1] = True
-                pgui.keyDown("left")
-
-            if not self.movement_actions[3][1]:
-                self.movement_actions[3][1] = True
-                pgui.keyDown("down")
-
-            for j in range(len(self.movement_actions)):
-                if j != 2 and j != 3:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move down
-        elif i == 6:
-            if not self.movement_actions[3][1]:
-                self.movement_actions[3][1] = True
-                pgui.keyDown("down")
-
-            for j in range(len(self.movement_actions)):
-                if j != 3:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-
-        # move down-right
-        elif i == 7:
-            if not self.movement_actions[3][1]:
-                self.movement_actions[3][1] = True
-                pgui.keyDown("down")
-
-            if not self.movement_actions[0][1]:
-                self.movement_actions[0][1] = True
-                pgui.keyDown("right")
-
-            for j in range(len(self.movement_actions)):
-                if j != 3 and j != 0:
-                    if self.movement_actions[j][1]:
-                        self.movement_actions[j][1] = False
-                        pgui.keyUp(self.movement_actions[j][0])
-    
 
     def capture_dolphin(self):
         """
-        Captures the dolphin window
+        Captures the dolphin window efficiently using mss and numpy.
+        Returns a grayscale numpy array of the captured screen.
         """
         geometry = self.window.get_geometry()
         padding = 20
@@ -425,13 +341,17 @@ class NHLHitzGymEnv(Env):
             "height": height - 2*padding
         }
     
+        # Capture screen directly to numpy array
         screenshot = self.sct.grab(monitor)
-
-        # Save the screenshot
-        img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
-        img = img.convert("L")
-        img_resized = img.resize((self.obs_shape[1], self.obs_shape[0]), Image.LANCZOS)
-        return np.array(img_resized, dtype=np.uint8)
+        
+        # Convert to grayscale using numpy operations
+        # This is faster than using PIL's convert
+        img_array = np.array(screenshot, dtype=np.uint8)
+        # Convert RGB to grayscale using standard weights
+        grayscale = np.dot(img_array[..., :3], [0.299, 0.587, 0.114]).astype(np.uint8)
+        
+        # Resize using PIL's LANCZOS resampling
+        return np.array(Image.fromarray(grayscale).resize((self.obs_shape[1], self.obs_shape[0]), Image.LANCZOS), dtype=np.uint8)
 
 
     def update_rewards(self):
