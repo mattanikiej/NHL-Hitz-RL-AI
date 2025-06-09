@@ -19,24 +19,43 @@ import memory_constants as mem
 
 class NHLHitzGymEnv(Env):
     """
-    Gymnasium environment to be used by the model
+    Gymnasium-compatible environment for NHL Hitz 2003 using the Dolphin Emulator.
+    
+    This environment interacts with the emulator, captures game frames, sends actions, and computes rewards for reinforcement learning agents.
+    
+    Key features:
+    - Supports frame stacking for temporal observations.
+    - Allows configurable action frequency (agent acts every N frames).
+    - Custom reward structure encouraging passing before shooting.
     """
     def __init__(self, config=None):
         """
-        Constructor for NHLHitzGymEnv
-        
-        :param config (dict): configuration settings for the environment
+        Initialize the NHLHitzGymEnv environment.
+
+        Args:
+            config (dict): Configuration settings for the environment. Must include:
+                - 'action_frequency' (int): Number of frames between agent actions.
+                - 'state' (str): Path to initial emulator state.
+                - 'window_name' (str): Name of the Dolphin window.
+                - 'dolphin_x' (int): Width of the emulator window.
+                - 'dolphin_y' (int): Height of the emulator window.
+                - 'frame_stack' (int): Number of frames to stack for observations.
+        Raises:
+            Exception: If config is not provided.
         """
         # check a config was passed in
         if config is None:
             raise Exception("Config needs to be set for NHLHitzGymEnv. Check configs.py for structure")
         
         # load in config values
+        self.action_frequency = config['action_frequency']
         self.initial_state = config['state']
         self.window_name = config['window_name']
         self.dolphin_x = config['dolphin_x']
         self.dolphin_y = config['dolphin_y']
         self.frame_stack = config['frame_stack']
+
+        self.steps = 0
 
         self.id = str(uuid4())[:5]
 
@@ -81,11 +100,16 @@ class NHLHitzGymEnv(Env):
         self.reward_weights = {
             'hit': 5,              # Encourage physical play
             'pass': 1,             # Very small reward for passing
-            'shot': 10,            # Encourage shooting
+            'shot': 5,             # Encourage shooting
             'goal': 100,           # Big reward for scoring
             'opponent_goal': -150, # Big penalty for conceding
             'missed_pass': -3      # Penalty for missed passes
         }
+
+        # initialize consecutive passes
+        self.consecutive_passes = 0
+        self.consecutive_pass_bonus = 5  # Bonus reward weight for consecutive passes before a shot
+        self.max_consecutive_passes = 5  # Max number of consecutive passes to reward
 
         self.total_rewards = 0
 
@@ -127,19 +151,23 @@ class NHLHitzGymEnv(Env):
 
     def step(self, action):
         """
-        Updates an environment with actions returning the next agent observation, 
-        the reward for taking that actions, if the environment has terminated or 
-        truncated due to the latest action and information from the environment 
-        about the step, i.e. metrics, debug info.
+        Take a step in the environment.
 
-        https://gymnasium.farama.org/api/env/
+        The agent's action is only executed every `action_frequency` frames; otherwise, the previous action is repeated or no action is taken.
+        Captures a new frame, updates the frame buffer, computes the reward, and returns the observation and info.
 
-        :param action (actType): action the model selected to run
+        Args:
+            action (tuple): The action selected by the agent (movement, button).
 
-        :return: (ObsType), (SupportsFloat), (bool), (bool), (dict)
+        Returns:
+            obs (np.ndarray): The stacked observation after the step.
+            reward (float): The reward for this step.
+            terminated (bool): Whether the episode has ended (always False here).
+            truncated (bool): Whether the episode was truncated (e.g., period ended).
+            info (dict): Additional info, including reward breakdown.
         """
-
-        self.act(action)
+        if self.steps % self.action_frequency == 0:
+            self.act(action)
 
         self.steps += 1
 
@@ -165,13 +193,16 @@ class NHLHitzGymEnv(Env):
 
     def reset(self, seed=None):
         """
-        Resets the environment to an initial state, required before calling step. 
-        Returns the first agent observation for an episode and information, 
-        i.e. metrics, debug info.
+        Reset the environment to the initial state.
 
-        https://gymnasium.farama.org/api/env/
+        Loads the initial emulator state, resets counters and rewards, and returns the initial stacked observation.
 
-        :return: (ObsType), (dict)
+        Args:
+            seed (int, optional): Random seed (unused).
+
+        Returns:
+            obs (np.ndarray): The initial stacked observation.
+            info (dict): Additional info (empty dict).
         """
         # increment resets
         self.resets += 1
@@ -196,21 +227,18 @@ class NHLHitzGymEnv(Env):
 
     def render(self):
         """
-        Renders the environments to help visualise what the agent see, 
+        Render the current environment observation.
 
-        https://gymnasium.farama.org/api/env/
-
-        :return: (list[int])
+        Returns:
+            obs (np.ndarray): The current stacked observation.
+            info (dict): Additional info (empty dict).
         """
         return self._get_obs(), {}
 
 
     def close(self):
         """
-        Closes the environment, important when external software is used, 
-        i.e. dolphin for rendering
-
-        https://gymnasium.farama.org/api/env/
+        Close the environment and terminate the Dolphin Emulator process.
         """
         print(f"Closing Dolphin Emulator with PID {self.dolphin_pid}.")
         os.kill(self.dolphin_pid, signal.SIGTERM)
@@ -218,9 +246,10 @@ class NHLHitzGymEnv(Env):
 
     def act(self, action):
         """
-        Sends the given action to the emulator
+        Send the given action to the emulator.
 
-        :param action (actType): action to send to dolphin
+        Args:
+            action (tuple): (movement_action, button_action) to send to Dolphin.
         """
         movement_action, button_action = action
 
@@ -233,9 +262,10 @@ class NHLHitzGymEnv(Env):
 
     def check_period(self):
         """
-        Checks if the period has ended
+        Check if the current period in the game has ended.
 
-        :return: (bool)
+        Returns:
+            bool: True if the period has ended, False otherwise.
         """
         if dme.read_byte(mem.PERIOD) > 1:
             return True
@@ -244,10 +274,10 @@ class NHLHitzGymEnv(Env):
 
     def get_dolphin_window(self):
         """
-        Finds the dolphin window and brings it into focus.
-        Returns None if window not found
+        Find and focus the Dolphin Emulator window by name.
 
-        :return: (Window)
+        Returns:
+            window (Xlib.display.Window): The Dolphin window object, or None if not found.
         """
         d = display.Display()
         root = d.screen().root
@@ -276,9 +306,10 @@ class NHLHitzGymEnv(Env):
 
     def press_key(self, key):
         """
-        Presses the given key
+        Simulate a key press and release using pyautogui.
 
-        :param key (Key): key to press
+        Args:
+            key (str): The key to press.
         """
         pgui.keyDown(key)
         time.sleep(0.001)
@@ -287,9 +318,10 @@ class NHLHitzGymEnv(Env):
 
     def button_key_press(self, action):
         """
-        Presses the given button key
+        Press the specified button action in the emulator.
 
-        :param action (float): action to take
+        Args:
+            action (int): Index of the button action to press.
         """
 
         self.press_key(self.button_actions[action])
@@ -297,12 +329,13 @@ class NHLHitzGymEnv(Env):
 
     def movement_key_press(self, action):
         """
-        Handles movement key presses based on the action value.
+        Handle movement key presses based on the action value.
+
         Action values 0-7 correspond to 8 directional movements:
-        0: right, 1: up-right, 2: up, 3: up-left, 4: left, 5: down-left, 6: down, 7: down-right
+            0: right, 1: up-right, 2: up, 3: up-left, 4: left, 5: down-left, 6: down, 7: down-right
 
         Args:
-            action (int): Integer between 0-7 representing the movement direction
+            action (int): Integer between 0-7 representing the movement direction.
         """
         # Define movement mappings for each direction
         movement_map = {
@@ -333,9 +366,11 @@ class NHLHitzGymEnv(Env):
 
     def capture_dolphin(self):
         """
-        Captures the dolphin window and returns an RGB numpy array.
+        Capture the current frame from the Dolphin Emulator window and return as an RGB numpy array.
+
+        Returns:
+            np.ndarray: The captured and resized RGB frame.
         """
-        t0 = time.time()
         geometry = self.window.get_geometry()
         padding = 20
         x, y, width, height = geometry.x, geometry.y, geometry.width, geometry.height
@@ -349,6 +384,7 @@ class NHLHitzGymEnv(Env):
 
         screenshot = self.sct.grab(monitor)
         img_array = np.frombuffer(screenshot.rgb, dtype=np.uint8).reshape((screenshot.height, screenshot.width, 3))
+
         img_resized = cv2.resize(img_array, (self.obs_shape[1], self.obs_shape[0]), interpolation=cv2.INTER_LINEAR)
 
         return img_resized
@@ -356,21 +392,55 @@ class NHLHitzGymEnv(Env):
 
     def update_rewards(self):
         """
-        Updates the rewards based on the memory values
-        """
-        self.rewards = {
-            'hit': dme.read_byte(mem.HITS),
-            'pass': dme.read_byte(mem.COMPLETED_PASSES),
-            'shot': dme.read_byte(mem.SHOTS),
-            'goal': dme.read_byte(mem.GOALS),
+        Update the reward structure based on current game memory values.
 
-            'opponent_goal': dme.read_byte(mem.OPPONENT_GOALS),
-            'missed_pass': dme.read_byte(mem.TOTAL_PASSES) - dme.read_byte(mem.COMPLETED_PASSES)
+        Implements a bonus for shooting after consecutive passes, up to a maximum streak. Resets the bonus on missed pass or shot.
+
+        Returns:
+            float: The reward gained since the last update.
+        """
+        # Read current memory values
+        hits = dme.read_byte(mem.HITS)
+        completed_passes = dme.read_byte(mem.COMPLETED_PASSES)
+        shots = dme.read_byte(mem.SHOTS)
+        goals = dme.read_byte(mem.GOALS)
+        opponent_goals = dme.read_byte(mem.OPPONENT_GOALS)
+        total_passes = dme.read_byte(mem.TOTAL_PASSES)
+        missed_passes = total_passes - completed_passes
+
+        # Calculate deltas
+        prev_rewards = self.rewards.copy()
+        self.rewards = {
+            'hit': hits,
+            'pass': completed_passes,
+            'shot': shots,
+            'goal': goals,
+            'opponent_goal': opponent_goals,
+            'missed_pass': missed_passes
         }
 
+        # Track events
+        pass_delta = self.rewards['pass'] - prev_rewards['pass']
+        shot_delta = self.rewards['shot'] - prev_rewards['shot']
+        missed_pass_delta = self.rewards['missed_pass'] - prev_rewards['missed_pass']
+
+        # Update consecutive passes
+        if pass_delta > 0:
+            # get the number of passes since the last shot or missed pass
+            self.consecutive_passes = min(self.consecutive_passes + pass_delta, self.max_consecutive_passes)
+        if missed_pass_delta > 0 or shot_delta > 0:
+            # reset bonus if a shot or missed pass occurs
+            self.consecutive_passes = 0
+
+        # Calculate reward
         new_rewards = 0
         for reward in self.rewards:
-            new_rewards += self.rewards[reward] * self.reward_weights[reward]
+            if reward == 'shot':
+                # Add bonus for consecutive passes
+                bonus = self.consecutive_pass_bonus * self.consecutive_passes
+                new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)
+            else:
+                new_rewards += self.rewards[reward] * self.reward_weights[reward]
 
         reward_gain = new_rewards - self.total_rewards
         self.total_rewards = new_rewards
@@ -379,4 +449,10 @@ class NHLHitzGymEnv(Env):
 
 
     def _get_obs(self):
+        """
+        Get the current stacked observation for the agent.
+
+        Returns:
+            np.ndarray: The stacked frames as a single observation (shape: height x width x 3*frame_stack).
+        """
         return np.concatenate(self.frame_buffer, axis=2, dtype=np.uint8)
