@@ -70,7 +70,7 @@ python train.py
 
 2. To continue training you can pass the ```--train-pretrained``` argument, along with the ```--session_id``` argument to continue training a pretrained model.
 ```
-python train.py --session_id YOUR_MODEL --train-pretrained True
+python train.py --session_id=YOUR_MODEL --train-pretrained=True
 ```
 
 ### 📝 Arguments for `train.py`
