@@ -63,7 +63,7 @@ python run_pretrained_model.py
 
 ## 🦾 Train Your Own AI 🦾
 
-1. Run ```train.py``` file
+1. Run ```train.py``` file with default settings
 ```
 python train.py
 ```
@@ -73,7 +73,7 @@ python train.py
 python train.py --session_id=YOUR_MODEL --train-pretrained=True
 ```
 
-### 📝 Arguments for `train.py`
+### 📝 Arguments for `train.py` 📝
 
 The `train.py` script supports the following command-line arguments:
 
@@ -84,13 +84,40 @@ The `train.py` script supports the following command-line arguments:
 | `--save-model`      | bool   | True                   | If `True`, saves the final model after training.                                              |
 
 **Example usage:**
-
+```
+python train.py --session_id=hawksai --train-pretrained=True --save-model=True
+```
 
 ### 🤓 Tips For Training 🤓
 Unless you have a very powerful computer, and a lot (and I mean A LOT) of time, I would recommend the following changes:
 * decrease ```train_steps``` to reduce time
 * decrease ```batch_size``` and/ or ```n_steps``` to decrease memory load
-* increase ```action_frequency``` or decrease ```n_epochs``` to speed up training
+* decrease ```n_epochs``` to speed up training
+* decrease ```action_frequency``` to increase the amount of actions it takes per second
+
+
+## 📁 Repository Directory Structure 📁
+
+Here's a quick overview of the main files and folders in this repository:
+
+```
+NHL-Hitz-RL-AI/
+├── assets/                             # Contains images and media files
+├── callbacks/                          # Custom callback implementations for training
+│   ├── episode_metrics_logger.py
+│   └── reward_breakdown_callback.py
+├── checkpoints/                        # Training checkpoints directory
+├── saved_models/                       # Directory for saved trained models
+├── save_states/                        # Game state saves
+├── tb_logs/                            # TensorBoard logs directory
+├── nhl_hitz_env.py                     # Main environment implementation
+├── train.py                            # Training script
+├── run_pretrained_model.py             # Script to run pretrained models
+├── configs.py                          # Configuration settings
+├── memory_constants.py                 # Memory address constants
+├── check_env.py                        # Environment verification script
+├── requirements.txt                    # Python dependencies
+```
 
 
 ## 💡 Built With 💡
