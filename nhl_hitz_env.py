@@ -102,7 +102,7 @@ class NHLHitzGymEnv(Env):
             'pass': 1,             # Very small reward for passing
             'shot': 5,             # Encourage shooting
             'goal': 100,           # Big reward for scoring
-            'opponent_goal': -150, # Big penalty for conceding
+            'opponent_goal': -100, # Big penalty for conceding
             'missed_pass': -3      # Penalty for missed passes
         }
 
@@ -166,19 +166,19 @@ class NHLHitzGymEnv(Env):
             truncated (bool): Whether the episode was truncated (e.g., period ended).
             info (dict): Additional info, including reward breakdown.
         """
-        if self.steps % self.action_frequency == 0:
-            self.act(action)
+        self.act(action)
 
         self.steps += 1
 
         reward_gain = self.update_rewards()
         truncated = self.check_period()
 
-        # Capture new frame and update buffer
-        new_frame = self.capture_dolphin()
+        # advance 5 frames
+        for _ in range(5):
+            new_frame = self.capture_dolphin()
 
-        self.frame_buffer.pop(0)
-        self.frame_buffer.append(new_frame)
+            self.frame_buffer.pop(0)
+            self.frame_buffer.append(new_frame)
 
         obs = self._get_obs()
 
@@ -435,7 +435,7 @@ class NHLHitzGymEnv(Env):
         # Calculate reward
         new_rewards = 0
         for reward in self.rewards:
-            if reward == 'shot':
+            if reward == 'shot' or reward == 'pass':
                 # Add bonus for consecutive passes
                 bonus = self.consecutive_pass_bonus * self.consecutive_passes
                 new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)

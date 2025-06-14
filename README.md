@@ -25,7 +25,7 @@ cd NHL-Hitz-RL-AI
     conda create --name nhl-hitz python=3.12
     conda activate nhl-hitz
     ```
-    * you can also use pyenv, some other python environment handler, or just insall python 3.12 to your machine
+    * you can also use pyenv, some other python environment handler, or just install python 3.12 to your machine
     * This probably will work with other versions of python, but it hasn't been tested
 
 4. Install necessary packages
@@ -68,6 +68,24 @@ python run_pretrained_model.py
 python train.py
 ```
 
+2. To continue training you can pass the ```--train-pretrained``` argument, along with the ```--session_id``` argument to continue training a pretrained model.
+```
+python train.py --session_id YOUR_MODEL --train-pretrained True
+```
+
+### 📝 Arguments for `train.py`
+
+The `train.py` script supports the following command-line arguments:
+
+| Argument            | Type   | Default                | Description                                                                                   |
+|---------------------|--------|------------------------|-----------------------------------------------------------------------------------------------|
+| `--session_id`      | str    | Random 5-char string   | Unique identifier for the training session. Used for saving checkpoints and model files.       |
+| `--train-pretrained`| bool   | False                  | If `True`, continues training from a pretrained model specified by `session_id`.              |
+| `--save-model`      | bool   | True                   | If `True`, saves the final model after training.                                              |
+
+**Example usage:**
+
+
 ### 🤓 Tips For Training 🤓
 Unless you have a very powerful computer, and a lot (and I mean A LOT) of time, I would recommend the following changes:
 * decrease ```train_steps``` to reduce time
@@ -92,5 +110,5 @@ This AI couldn't have been done without these amazing projects. Please check the
 
 
 <p align="center">
-    <img alt="NHL Hitz 2003 GameCube Box Art" src="/assets/boxart.jpg" height="300" >
+    <img alt="NHL Hitz 2003 GameCube Box Art" src="assets/boxart.jpg" height="300" >
 </p>

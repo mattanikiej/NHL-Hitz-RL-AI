@@ -2,8 +2,8 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import CheckpointCallback, CallbackList
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from reward_logging_callback import RewardLoggingCallback
-from reward_breakdown_callback import RewardBreakdownCallback
+from callbacks.episode_metrics_logger import EpisodeMetricsLogger
+from callbacks.reward_breakdown_callback import RewardBreakdownCallback
 import configs as c
 from nhl_hitz_env import NHLHitzGymEnv
 
@@ -46,8 +46,7 @@ def train(session_id, train_pretrained, save_model):
     env = VecNormalize(env, norm_reward=True, norm_obs=False)
 
     # initialize callbacks
-    reward_callback = RewardLoggingCallback(n_steps=n_steps, verbose=verbose)
-
+    episode_metrics = EpisodeMetricsLogger(n_steps=n_steps, verbose=verbose)
     reward_breakdown_callback = RewardBreakdownCallback()
 
     checkpoint_freq = int((train_steps*n_steps) // 5)
@@ -58,7 +57,7 @@ def train(session_id, train_pretrained, save_model):
     )
 
     callbacks = CallbackList([
-        reward_callback, 
+        episode_metrics, 
         checkpoint_callback, 
         reward_breakdown_callback
     ])
@@ -105,7 +104,7 @@ if __name__ == "__main__":
 
     # set arguments
     parser.add_argument('--session_id', type=str, default=str(uuid4())[:5], help='session_id for the model')
-    parser.add_argument('--train-pretrained', type=bool, default=False, help='Continue training a pretrained model. This will load the model from the session_id')
+    parser.add_argument('--train-pretrained', type=bool, default=False, help='Continue training a pretrained model. This will load the model from the session_id.')
     parser.add_argument('--save-model', type=bool, default=True, help='Save the model after training')
 
     # parse args
