@@ -101,9 +101,9 @@ class NHLHitzGymEnv(Env):
             'hit': 5,              # Encourage physical play
             'pass': 1,             # Very small reward for passing
             'shot': 5,             # Encourage shooting
-            'goal': 100,           # Big reward for scoring
+            'goal': 500,           # Big reward for scoring
             'opponent_goal': -100, # Big penalty for conceding
-            'missed_pass': -3      # Penalty for missed passes
+            'missed_pass': -2      # Penalty for missed passes
         }
 
         # initialize consecutive passes
@@ -435,9 +435,15 @@ class NHLHitzGymEnv(Env):
         # Calculate reward
         new_rewards = 0
         for reward in self.rewards:
-            if reward == 'shot' or reward == 'pass':
+            if reward == 'shot':
                 # Add bonus for consecutive passes
                 bonus = self.consecutive_pass_bonus * self.consecutive_passes
+                new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)
+            elif reward == 'pass':
+                bonus = 0
+                if self.consecutive_passes <= 5:
+                    # Add bonus for consecutive passes only up to 5 passes
+                    bonus = self.consecutive_pass_bonus * self.consecutive_passes
                 new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)
             else:
                 new_rewards += self.rewards[reward] * self.reward_weights[reward]
