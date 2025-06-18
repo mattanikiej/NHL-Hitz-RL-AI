@@ -11,7 +11,7 @@ from uuid import uuid4
 import argparse
 
 
-def train(session_id, train_pretrained, save_model):
+def train(session_id, train_pretrained, save_model, pretrained_model_path=None):
     """
     Train a PPO (Proximal Policy Optimization) model for NHL Hitz environment.
 
@@ -76,12 +76,17 @@ def train(session_id, train_pretrained, save_model):
     # check to train on pretrained model
     reset_num_timesteps = not train_pretrained
     if train_pretrained:
-        session_id = cfg["session_id"]
+        if pretrained_model_path:
+            # Load model from specified path
+            model_path = pretrained_model_path
+        else:
 
-        model_path = f"saved_models/{session_id}-model.zip"
+            model_path = f"saved_models/{session_id}-model.zip"
 
         model = PPO.load(model_path, tensorboard_log="./tb_logs/")
         model.set_env(env)
+
+        print(f"Successfully loaded model from {model_path}")
 
     model.learn(
         total_timesteps=train_steps*n_steps, 
@@ -106,10 +111,11 @@ if __name__ == "__main__":
     parser.add_argument('--session_id', type=str, default=str(uuid4())[:5], help='session_id for the model')
     parser.add_argument('--train-pretrained', type=bool, default=False, help='Continue training a pretrained model. This will load the model from the session_id.')
     parser.add_argument('--save-model', type=bool, default=True, help='Save the model after training')
+    parser.add_argument('--pretrained-model-path', type=str, default=None, help='Path to load pretrained model. Overrides session_id if provided.')
 
     # parse args
     args = parser.parse_args()
 
     # train model
-    train(args.session_id, args.train_pretrained, args.save_model)
+    train(args.session_id, args.train_pretrained, args.save_model, args.pretrained_model_path)
 

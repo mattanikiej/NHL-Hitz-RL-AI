@@ -1,6 +1,6 @@
 basic = {
     "action_frequency": 5,
-    "train_steps": 2500,
+    "train_steps": 2000,
     "n_steps": 128,
     "frame_stack": 5,
     "verbose": 1,

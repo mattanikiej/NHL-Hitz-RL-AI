@@ -92,24 +92,27 @@ class NHLHitzGymEnv(Env):
             'pass': 0,
             'shot': 0,
             'goal': 0,
-
             'opponent_goal': 0,
-            'missed_pass': 0
+            'missed_pass': 0,
+            'consecutive_pass_bonus': 0,  
+            'shot_streak_bonus': 0        
         }
 
         self.reward_weights = {
-            'hit': 5,              # Encourage physical play
-            'pass': 1,             # Very small reward for passing
-            'shot': 5,             # Encourage shooting
-            'goal': 500,           # Big reward for scoring
-            'opponent_goal': -100, # Big penalty for conceding
-            'missed_pass': -2      # Penalty for missed passes
+            'hit': 5,              
+            'pass': 1,            
+            'shot': 1,             
+            'goal': 500,           
+            'opponent_goal': -100, 
+            'missed_pass': 0,      
+            'consecutive_pass_bonus': 5,  
+            'shot_streak_bonus': 10    
         }
 
-        # initialize consecutive passes
+        # initialize consecutive passes tracking
         self.consecutive_passes = 0
-        self.consecutive_pass_bonus = 5  # Bonus reward weight for consecutive passes before a shot
-        self.max_consecutive_passes = 5  # Max number of consecutive passes to reward
+        self.max_consecutive_passes = 5    # Cap for consecutive pass bonus
+        self.min_shot_streak = 3           # Minimum passes needed for shot streak bonus
 
         self.total_rewards = 0
 
@@ -393,8 +396,9 @@ class NHLHitzGymEnv(Env):
     def update_rewards(self):
         """
         Update the reward structure based on current game memory values.
-
-        Implements a bonus for shooting after consecutive passes, up to a maximum streak. Resets the bonus on missed pass or shot.
+        Tracks two types of streak-based rewards:
+        1. Consecutive pass bonus (up to 5 passes)
+        2. Shot streak bonus (up to 5 passes, only after 3 passes)
 
         Returns:
             float: The reward gained since the last update.
@@ -416,7 +420,9 @@ class NHLHitzGymEnv(Env):
             'shot': shots,
             'goal': goals,
             'opponent_goal': opponent_goals,
-            'missed_pass': missed_passes
+            'missed_pass': missed_passes,
+            'consecutive_pass_bonus': 0,
+            'shot_streak_bonus': 0
         }
 
         # Track events
@@ -424,29 +430,32 @@ class NHLHitzGymEnv(Env):
         shot_delta = self.rewards['shot'] - prev_rewards['shot']
         missed_pass_delta = self.rewards['missed_pass'] - prev_rewards['missed_pass']
 
-        # Update consecutive passes
+        self.consecutive_passes = self.consecutive_passes + pass_delta
+
+        # Update consecutive passes and calculate streak-based rewards
         if pass_delta > 0:
-            # get the number of passes since the last shot or missed pass
-            self.consecutive_passes = min(self.consecutive_passes + pass_delta, self.max_consecutive_passes)
-        if missed_pass_delta > 0 or shot_delta > 0:
-            # reset bonus if a shot or missed pass occurs
+            
+            # Update consecutive pass bonus (capped at 5)
+            if self.consecutive_passes <= self.max_consecutive_passes:
+                self.rewards['consecutive_pass_bonus'] = self.consecutive_passes
+            else:
+                self.rewards['consecutive_pass_bonus'] = 0
+
+        if shot_delta > 0:
+            # Calculate shot streak bonus (only if we have at least 3 passes)
+            if self.consecutive_passes >= self.min_shot_streak:
+                self.rewards['shot_streak_bonus'] = self.consecutive_passes
+            # Reset streak
             self.consecutive_passes = 0
 
-        # Calculate reward
+        if missed_pass_delta > 0:
+            # Reset streak on missed pass
+            self.consecutive_passes = 0
+
+        # Calculate total reward
         new_rewards = 0
         for reward in self.rewards:
-            if reward == 'shot':
-                # Add bonus for consecutive passes
-                bonus = self.consecutive_pass_bonus * self.consecutive_passes
-                new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)
-            elif reward == 'pass':
-                bonus = 0
-                if self.consecutive_passes <= 5:
-                    # Add bonus for consecutive passes only up to 5 passes
-                    bonus = self.consecutive_pass_bonus * self.consecutive_passes
-                new_rewards += self.rewards[reward] * (self.reward_weights[reward] + bonus)
-            else:
-                new_rewards += self.rewards[reward] * self.reward_weights[reward]
+            new_rewards += self.rewards[reward] * self.reward_weights[reward]
 
         reward_gain = new_rewards - self.total_rewards
         self.total_rewards = new_rewards

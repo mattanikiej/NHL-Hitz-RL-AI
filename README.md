@@ -49,16 +49,34 @@ dolphin-emu  --exec path/to/your/rom
 ```
 
 ## 🤖 Run Pretrained Model 🤖
-1. Downlaod the latest model from the releases tab
+1. Download the latest model from the releases tab
 
-2. Change ```file_name``` to the path to your saved model in the ```run_pretrained_model.py``` file
-
-3. Run ```run_pretrained_model.py``` file
+2. Run the `run_pretrained_model.py` script with your model path:
 ```
+python run_pretrained_model.py --model-path path/to/your/model.zip
+```
+
+### 📝 Arguments for `run_pretrained_model.py` 📝
+
+The `run_pretrained_model.py` script supports the following command-line arguments:
+
+| Argument      | Type   | Default           | Description                                                                                   |
+|---------------|--------|-------------------|-----------------------------------------------------------------------------------------------|
+| `--model-path`| str    | 'saved_models/hawksai-model'| Path to the saved PPO model file (.zip format)                                               |
+| `--steps`     | int    | 500               | Number of steps for the model to take. Use -1 for infinite steps.                            |
+
+**Example usage:**
+```
+# Run with default settings (hawksai-model for 500 steps)
 python run_pretrained_model.py
+
+# Run a specific model for 1000 steps
+python run_pretrained_model.py --model-path saved_models/my_model --steps 1000
+
+# Run a model indefinitely
+python run_pretrained_model.py --model-path saved_models/my_model --steps -1
 ```
 
-4. To run indefiniteley, change the ```for``` loop to a ```while True:``` loop. To stop the run, press ```CTRL + C``` in the terminal
 
 
 ## 🦾 Train Your Own AI 🦾
@@ -109,7 +127,6 @@ NHL-Hitz-RL-AI/
 ├── checkpoints/                        # Training checkpoints directory
 ├── saved_models/                       # Directory for saved trained models
 ├── save_states/                        # Game state saves
-├── tb_logs/                            # TensorBoard logs directory
 ├── nhl_hitz_env.py                     # Main environment implementation
 ├── train.py                            # Training script
 ├── run_pretrained_model.py             # Script to run pretrained models
